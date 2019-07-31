@@ -1,4 +1,4 @@
-# jQuery xzTip Plugin
+﻿# jQuery xzTip Plugin
 
 xzTip 依赖于 jQuery，提供鼠标悬停提示或点击弹窗的功能，可以指定吸附于某个控件周围。提示内容可以手动配置，也可以从某个控件获取，允许以文本或图片的形式展示。
 
@@ -32,6 +32,9 @@ $('#demo').xzTip({
     overlay	: true
   });
 ```
+
+## 示例
+请参见 <a href="https://calvin1912.github.io/xzTip/index.html" target="_blank">示例</a>
 
 ## 使用文档
 ### 选项参数
