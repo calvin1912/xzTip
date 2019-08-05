@@ -298,7 +298,7 @@
             function _closeTipForInstant(tip, index){
                 TIME_ID[index] = false;
                 $('.xztip-actived[data-xztip-index="' + index + '"]').removeClass('xztip-actived');
-                tip.slideUp(1000).attr('data-xztip-state', 'close');
+                tip.slideUp('fast').attr('data-xztip-state', 'close');
                 if(opts.overlay){
                     $('.xztip-overlay[data-xztip-index="' + index + '"]').hide();
                 }
