@@ -34,7 +34,7 @@ $('#demo').xzTip({
 ```
 
 ## 示例
-请参见 <a href="https://calvin1912.github.io/xzTip/index.html" target="_blank">示例</a>
+<a href="https://calvin1912.github.io/xzTip/index.html" target="_blank">点击这里查看所有演示</a>
 
 ## 使用文档
 ### 选项参数

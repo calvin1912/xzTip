@@ -7,18 +7,21 @@
 	MIT License
 	http://www.opensource.org/licenses/mit-license.php
 
-	version	: v0.1
+    version	: v0.1.1
+    data    : 2019-8-5
 	author	: calvin
 	email	: bwcui@qq.com
  */
 
 (function ($) {
 	var methods = {
-        init: function (options) {
+        init: function (options) { // 初始化方法
+            // 定时器ID关联数组，数组键保存 XZTIP_INDEX，值为定时器 ID
             var TIME_ID         = new Array();
-            var EXISTS_VALUE    = false;
+            // tip 索引，每当为控件绑定此插件时，索引+1
             var XZTIP_INDEX     = (window.xzTip_INDEX = (window.xzTip_INDEX ? (window.xzTip_INDEX + 1) : 1));
             
+            // 入口参数默认值
             var defOptions = {
                 open            : 'mouseIn',
                 showOpenBtn     : false,
@@ -31,36 +34,53 @@
                 overlay         : false
             };
             var opts = jQuery.extend(defOptions, options);
-            if(opts.style != 'window') opts.overlay = false;
-            
-            if(opts.overlay) jQuery('<div class="xztip-overlay" data-xztip-index="' + XZTIP_INDEX + '"></div>').appendTo('body');
-            var div = jQuery('<div class="xztip" style="display:none;" data-xztip-index="' + XZTIP_INDEX + '"></div>').appendTo('body'); // 向文档中插入一段共用的弹出层代码
-            if(opts.header) div.append('<div class="xztip-header">' + opts.header + '</div>');
-            if(opts.showCloseBtn) div.append('<div class="xztip-' + (opts.header ? 'header' : 'icon') + '-close"></div>');
-            var bodyCls = 'xztip-body';
-            if(opts.bodyCls) bodyCls += ' ' + opts.bodyCls;
+            if(opts.style != 'window'){
+                opts.overlay = false;
+            }
+
+            // 遮罩层
+            if(opts.overlay){
+                $('<div class="xztip-overlay" data-xztip-index="' + XZTIP_INDEX + '" data-xztip-state="close"></div>').appendTo('body');
+            }
+            // 弹出层
+            var div = $('<div class="xztip" style="display:none;" data-xztip-index="' + XZTIP_INDEX + '"></div>').appendTo('body');
+            // 弹出层标题
+            if(opts.header){
+                div.append('<div class="xztip-header">' + opts.header + '</div>');
+            }
+            // 弹出层关闭按钮
+            if(opts.showCloseBtn){
+                div.append('<div class="xztip-' + (opts.header ? 'header' : 'icon') + '-close"></div>');
+            }
+            // 弹出层容器
+            var bodyCls = 'xztip-body' + (opts.bodyCls ? (' ' + opts.bodyCls) : '');
             div.append('<div class="' + bodyCls + '" style="' + ((opts.dataType != 'image') ? 'padding:5px 10px;' : 'padding:1px;') + '"></div>');
             
+            // 获取 tip 状态：close、open、closing
+            function getState(index){
+                return $('.xztip[data-xztip-index="' + index + '"]').attr('data-xztip-state');
+            }
+
             // 显示提示控件
-            function showTip(target, value){
+            function openTip(target, value){
                 var index = target.attr('data-xztip-index');
                 if(value == undefined || value == null || value == ''){
-                    EXISTS_VALUE = false;
                     return;
                 }
                 
-                EXISTS_VALUE = true;
-                if(target.hasClass('xztip-opened')){ // 鼠标重复移入时忽略操作
+                // 鼠标重复移入控件时忽略本次操作
+                if(target.hasClass('xztip-actived')){
                     clearTimeout(TIME_ID[index]);
                     return;
                 }
 
-                // 移除旧控件样式，并在新控件中增加样式
-                jQuery('.xztip-opened[data-xztip-index="' + index + '"]').removeClass('xztip-opened');
-                target.addClass('xztip-opened');
+                // 移除旧控件“激活”样式
+                $('.xztip-actived[data-xztip-index="' + index + '"]').removeClass('xztip-actived');
+                // 为新控件增加“激活”样式
+                target.addClass('xztip-actived');
 
                 // 显示遮罩层
-                if(opts.overlay) jQuery('.xztip-overlay[data-xztip-index="' + index + '"]').show();
+                if(opts.overlay) $('.xztip-overlay[data-xztip-index="' + index + '"]').show();
                 
                 // 加载弹出层
                 switch(opts.dataType){
@@ -85,19 +105,24 @@
                 }else if(opts.height){
                     h = opts.height;
                     w = target.outerWidth(true);
-                }else{ // 宽、高都没有设置
+                }else{
                     w = target.outerWidth(true);
                     h = target.outerHeight(true) * 3;
                 }
                 
                 var pos = getPosition(target, w, h);
-                var span = jQuery('<span>' + text + '</span>');
+                var span = $('<span>' + text + '</span>');
                 if(opts.onClick){
                     span.click = function(){
                         opts.onClick(this);
                     };
                 }
-                jQuery('.xztip[data-xztip-index="' + index + '"]').hide().css({width: w, height: h, left: pos.left, top: pos.top}).children('.xztip-body').html('').append(span).parent().slideDown();
+                $('.xztip[data-xztip-index="' + index + '"]')
+                    .stop()
+                    .attr('data-xztip-state', 'open')
+                    .css({width: w, height: h, left: pos.left, top: pos.top})
+                    .children('.xztip-body').html('').append(span)
+                    .parent().slideDown();
             }
             // 获取坐标
             function getPosition(target, tipWidth, tipHeight){
@@ -112,8 +137,8 @@
             // 获取居于浏览器中间的坐标
             function _getPositionForWindow(target, tipWidth, tipHeight) {
                 var result = {
-                    top     : Math.ceil((jQuery(window).height() - tipHeight) / 2 + jQuery(document).scrollTop()),
-                    left    : Math.ceil((jQuery(window).width() - tipWidth) / 2)
+                    top    : Math.ceil(($(window).height() - tipHeight) / 2 + $(document).scrollTop()),
+                    left   : Math.ceil(($(window).width() - tipWidth) / 2)
                 };
                 if(result.top < 0) result.top = 0;
                 if(result.left < 0) result.left = 0;
@@ -128,7 +153,7 @@
                 var tarPos  = _getAddCoordinate(origin, posArr[0], tarSize);
                 var tipPos  = _getLessCoordinate(tarPos, posArr[1], { width: tipWidth, height: tipHeight });                
                 
-                if(((tipPos.top + tipHeight) > jQuery(document).height()) && ((origin.top - tipHeight) >= 0)){
+                if(((tipPos.top + tipHeight) > $(document).height()) && ((origin.top - tipHeight) >= 0)){
                     tipPos.top = origin.top - tipHeight;
                 }
                 
@@ -142,13 +167,13 @@
                 case 'LU': // 左上
                     break;
                 case 'LL': // 左下
-                    result.top += size.height;
+                    result.top  += size.height;
                     break;
                 case 'RU': // 右上
                     result.left += size.width;
                     break;
                 case 'RL': // 右下
-                    result.top += size.height;
+                    result.top  += size.height;
                     result.left += size.width;
                     break;
                 default:
@@ -163,13 +188,13 @@
                 case 'LU': // 左上
                     break;
                 case 'LL': // 左下
-                    result.top -= size.height;
+                    result.top  -= size.height;
                     break;
                 case 'RU': // 右上
                     result.left -= size.width;
                     break;
                 case 'RL': // 右下
-                    result.top -= size.height;
+                    result.top  -= size.height;
                     result.left -= size.width;
                     break;
                 default:
@@ -207,7 +232,7 @@
                 }else if(opts.height){
                     h = opts.height;
                     w = Math.ceil((opts.height * image.width) / image.height);
-                }else{ // 宽、高都没有设置
+                }else{
                     var autoSize = getImageAutoSize(target, image.width, image.height);
                     w = autoSize.width;
                     h = autoSize.height;
@@ -222,11 +247,16 @@
                     image.width = w - 4;
                     image.height = h - 4;
                 }
-                jQuery('.xztip[data-xztip-index="' + index + '"]').hide().css({width: w, height: h, left: pos.left, top: pos.top}).children('.xztip-body').html('').append(image).parent().slideDown();
+                $('.xztip[data-xztip-index="' + index + '"]')
+                    .stop()
+                    .attr('data-xztip-state', 'open')
+                    .css({width: w, height: h, left: pos.left, top: pos.top})
+                    .children('.xztip-body').html('').append(image)
+                    .parent().slideDown();
             }
             function getImageAutoSize(target, width, height){
                 var ctlWidth = target.outerWidth(true) - 4;
-                var winWidth = jQuery(window).width(), winHeight = jQuery(window).height();
+                var winWidth = $(window).width(), winHeight = $(window).height();
                 
                 // 根据吸附控件计算大小
                 var w = ctlWidth > width ? width : ctlWidth;
@@ -247,39 +277,53 @@
             
             // 关闭弹出层
             function closeTip(index, delay){
-                if(delay) _closeTipForDelay(index);
-                else _closeTipForInstant(index);
+                var tip = $('.xztip[data-xztip-index="' + index + '"]');
+                if(delay){
+                    _closeTipForDelay(tip, index);
+                } else {
+                    _closeTipForInstant(tip, index);
+                }
             }
             // 延时关闭弹出层
-            function _closeTipForDelay(index){
-                TIME_ID[index] = setTimeout(function(){ _closeTipForInstant(index); }, opts.delayCloseTime);
+            function _closeTipForDelay(tip, index){
+                tip.attr('data-xztip-state', 'closing');
+
+                TIME_ID[index] = setTimeout(function(){
+                    if(tip.attr('data-xztip-state') == 'closing'){
+                        _closeTipForInstant(tip, index); 
+                    }
+                }, opts.delayCloseTime);
             }
             // 立即关闭弹出层
-            function _closeTipForInstant(index){
+            function _closeTipForInstant(tip, index){
                 TIME_ID[index] = false;
-                jQuery('.xztip-opened[data-xztip-index="' + index + '"]').removeClass('xztip-opened');
-                jQuery('.xztip[data-xztip-index="' + index + '"]').slideUp("fast");
-                if(opts.overlay) jQuery('.xztip-overlay[data-xztip-index="' + index + '"]').hide();
+                $('.xztip-actived[data-xztip-index="' + index + '"]').removeClass('xztip-actived');
+                tip.slideUp(1000).attr('data-xztip-state', 'close');
+                if(opts.overlay){
+                    $('.xztip-overlay[data-xztip-index="' + index + '"]').hide();
+                }
             }
             // 移除延迟关闭（动画）
             function removeDelayClose(index){
-                if(TIME_ID[index]) clearTimeout(TIME_ID[index]);
+                if(TIME_ID[index]){
+                    clearTimeout(TIME_ID[index]);
+                }
             }
             
-            // 窗口显示标题
+            // 窗口标题绑定拖动事件
             if(opts.header){
-                jQuery('.xztip[data-xztip-index="' + XZTIP_INDEX + '"] .xztip-header').mousedown(function(ev){
-                    var win         = jQuery(this).parent();
-                    var dx          = ev.clientX || ev.pageX;   //获取点击时刻的X轴坐标和Y坐标(前一个获取不到就获取后一个)
-                    var dy          = ev.clientY || ev.pageY;
-                    var dialogleft  = win.offset().left;        //获取div距左和距顶的距离，offset是边距
-                    var dialogtop   = win.offset().top;
-                    var flag        = true;                     //定义一个开关，默认鼠标点击之后开启
-                    jQuery(document).mousemove(function(e){     //绑定鼠标移动事件，要在全屏移动，所以用绑定document
+                $('.xztip[data-xztip-index="' + XZTIP_INDEX + '"] .xztip-header').mousedown(function(ev){
+                    var win         = $(this).parent();
+                    var evtX        = ev.clientX || ev.pageX;   // 点击坐标
+                    var evtY        = ev.clientY || ev.pageY;
+                    var winLeft     = win.offset().left;        // 弹出层坐标
+                    var winTop      = win.offset().top;
+                    var flag        = true;                     // 拖动开关
+                    $(document).mousemove(function(e){     // 绑定鼠标移动事件
                         if(flag){
-                            var left= (e.clientX || e.pageX) - dx + dialogleft; //用移动后的X轴和Y轴坐标减去点击时刻的坐标再加上原先div距左和距顶的距离
-                            var top = (e.clientY || e.pageY) - dy + dialogtop;
-                            win.css({"left": left + "px","top": top + "px"});   //重新为div的left和top赋值
+                            var left= (e.clientX || e.pageX) - evtX + winLeft;
+                            var top = (e.clientY || e.pageY) - evtY + winTop;
+                            win.css({"left": left + "px","top": top + "px"});
                         }
                     }).mouseup(function(){
                         flag = false;
@@ -287,73 +331,81 @@
                 });
             }
             // 监听鼠标移入、移出弹层事件，以及关闭按钮事件
-            jQuery('.xztip[data-xztip-index="' + XZTIP_INDEX + '"]').hover(
+            $('.xztip[data-xztip-index="' + XZTIP_INDEX + '"]').hover(
                 function(){
-                    removeDelayClose(jQuery(this).attr('data-xztip-index'));
+                    removeDelayClose($(this).attr('data-xztip-index'));
                 },
                 function(){
-                    if(opts.close == 'mouseOut') closeTip(jQuery(this).attr('data-xztip-index'), true);
+                    if(opts.close == 'mouseOut'){
+                        closeTip($(this).attr('data-xztip-index'), true);
+                    }
                 }
             ).children('.xztip-icon-close,.xztip-header-close').on('click', function(){
-                var index = jQuery(this).parent().attr('data-xztip-index');
-                closeTip(index, false);
+                closeTip($(this).parent().attr('data-xztip-index'), false);
             });
             // 监听 ESC 按钮
             if(opts.escClose){
-                jQuery(document).keyup(function(e){
-                    var key =  e.which || e.keyCode;
-                    if(key == 27){
-                        jQuery('.xztip:visible').each(function(){
-                            closeTip(jQuery(this).attr('data-xztip-index'), false);
+                $(document).keyup(function(e){
+                    if((e.which || e.keyCode) == 27){
+                        $('.xztip:visible').each(function(){
+                            closeTip($(this).attr('data-xztip-index'), false);
                         });
+                        e.stopPropagation();
                     }
                 });
             }
             
-            // 遍历所有控件
+            // 遍历所有绑定控件
             return this.each(function () {
-                var _this = jQuery(this);
+                var _this = $(this);
                 var target = _this;
                 switch(typeof(opts.adsorptionTo)){
                 case 'function':
                     var label = opts.adsorptionTo(_this);
-                    if(label != null) target = label;
+                    if(label != null){
+                        target = label;
+                    }
                     break;
                 case 'object':
                     target = opts.adsorptionTo;
                     break;
                 case 'string':
-                    target = jQuery(opts.adsorptionTo);
+                    target = $(opts.adsorptionTo);
                     break;
                 }
                 
 				// 保存索引
 				_this.attr('data-xztip-index', XZTIP_INDEX);
                 target.attr('data-xztip-index', XZTIP_INDEX).addClass('xztip-field');
-                if(opts.showOpenBtn) target.addClass('xztip-btn-open');
-                
-                // 绑定触发打开的事件
+                if(opts.showOpenBtn){
+                    target.addClass('xztip-btn-open');
+                }
+
+                // 绑定打开事件
                 switch(opts.open){
                 case 'mouseIn':
                     target.on('mouseover', function(){
                         var value = opts.data? opts.data : (_this.is('input') ? _this.val() : _this.html());
-                        showTip(jQuery(this), value);
+                        openTip($(this), value);
                     });
                     break;
                 case 'click':
                     target.on('click', function(){
                         var value = opts.data? opts.data : (_this.is('input') ? _this.val() : _this.html());
-                        showTip(jQuery(this), value);
+                        openTip($(this), value);
                     });
                     break;
                 }
                 
-                // 绑定触发关闭的事件
+                // 绑定关闭事件
                 switch(opts.close){
                 case 'mouseOut':
                     target.on('mouseout', function(){
-                        var index = jQuery(this).attr('data-xztip-index');
-                        if(EXISTS_VALUE) closeTip(index, true);
+                        var index = $(this).attr('data-xztip-index');
+                        var state = $('.xztip[data-xztip-index="' + index + '"]').attr('data-xztip-state')
+                        if(state == 'open'){
+                            closeTip(index, true);
+                        }
                     });
                     break;
                 }
@@ -361,9 +413,9 @@
             });
             
         },
-        title: function (str) {
+        title: function (str) { // 标题获取/设置 方法
 			var index = this.attr('data-xztip-index');
-			var header  = jQuery('.xztip[data-xztip-index="' + index + '"] .xztip-header');
+			var header  = $('.xztip[data-xztip-index="' + index + '"] .xztip-header');
 			if(str == undefined){
 				return header.length <= 0 ? null : header.text();
 			}else{
@@ -381,4 +433,5 @@
             $.error('Method' + method + 'does not exist on jQuery.xzTip');
         }
     };
+
 })(jQuery);
